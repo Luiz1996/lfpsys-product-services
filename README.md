@@ -1,4 +1,4 @@
-This is the Auth Service of LFPSys.
+This is the Product Service of LFPSys.
 
 #### Main Technology Stack
 * Java 21
