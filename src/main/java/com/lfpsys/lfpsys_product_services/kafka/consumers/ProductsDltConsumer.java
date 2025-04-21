@@ -2,6 +2,7 @@ package com.lfpsys.lfpsys_product_services.kafka.consumers;
 
 import static com.lfpsys.lfpsys_product_services.kafka.KafkaConfig.DLT_TOPIC_NAME;
 import static com.lfpsys.lfpsys_product_services.nfe_upload.NfeUploadProcessStatus.ERROR;
+import static com.lfpsys.lfpsys_product_services.nfe_upload.NfeUploadProcessType.INSERT_PRODUCTS;
 import static java.lang.String.format;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,7 +39,7 @@ public class ProductsDltConsumer {
       status
           .getProcesses()
           .forEach(nfeUploadProcess -> {
-            if (NfeUploadProcessType.INSERT_PRODUCTS.equals(nfeUploadProcess.getProcess())) {
+            if (INSERT_PRODUCTS.equals(nfeUploadProcess.getProcess())) {
               nfeUploadProcess.setStatus(ERROR);
             }
           });

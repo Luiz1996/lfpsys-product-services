@@ -2,10 +2,13 @@ package com.lfpsys.lfpsys_product_services.kafka.consumers;
 
 import static com.lfpsys.lfpsys_product_services.kafka.KafkaConfig.TOPIC_NAME;
 import static com.lfpsys.lfpsys_product_services.nfe_upload.NfeUploadProcessStatus.COMPLETED;
+import static com.lfpsys.lfpsys_product_services.nfe_upload.NfeUploadProcessType.INSERT_PRODUCTS;
+import static com.lfpsys.lfpsys_product_services.nfe_upload.NfeUploadProcessType.NFE_UPLOAD;
 import static java.lang.String.format;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lfpsys.lfpsys_product_services.PendingBeforeStepException;
 import com.lfpsys.lfpsys_product_services.nfe_upload.NfeUploadProcessType;
 import com.lfpsys.lfpsys_product_services.nfe_upload.NfeUploadStatusDto;
 import java.util.UUID;
@@ -28,16 +31,23 @@ public class ProductsConsumer {
   }
 
   @KafkaListener(topics = TOPIC_NAME, groupId = "group_id")
-  public void consumeMessage(ConsumerRecord<String, String> consumerRecord)
-      throws JsonProcessingException, InterruptedException {
-    Thread.sleep(2000);
+  public void consumeMessage(ConsumerRecord<String, String> consumerRecord) throws JsonProcessingException {
     final var redisKey = format(REDIS_KEY_PREFIX, UUID.fromString(consumerRecord.key()));
     final var status = objectMapper.readValue(redisTemplate.opsForValue().get(redisKey), NfeUploadStatusDto.class);
+
+    final var beforeStepIsCompleted = status
+        .getProcesses()
+        .stream()
+        .anyMatch(process -> NFE_UPLOAD.equals(process.getProcess()) && COMPLETED.equals(process.getStatus()));
+
+    if (!beforeStepIsCompleted) {
+      throw new PendingBeforeStepException();
+    }
 
     status
         .getProcesses()
         .forEach(nfeUploadProcess -> {
-          if (NfeUploadProcessType.INSERT_PRODUCTS.equals(nfeUploadProcess.getProcess())) {
+          if (INSERT_PRODUCTS.equals(nfeUploadProcess.getProcess())) {
             nfeUploadProcess.setStatus(COMPLETED);
           }
         });
